@@ -169,7 +169,7 @@ public class BubbleControllerTest {
     public void followsKeyboardHeight() {
         focusText();
         c.onFocusSnapshot(TEXT, "com.chat", true, 1400, false);
-        assertTrue(host.has("moveBubble 1016,1328"));
+        assertTrue(host.has("moveBubble 1016,1328 animated"));
     }
 
     // --- Recording ----------------------------------------------------------------
@@ -341,7 +341,7 @@ public class BubbleControllerTest {
         assertEquals(Mode.IDLE, c.mode());
         assertEquals(BubbleController.SIDE_LEFT, host.side);
         assertEquals(100, host.offsetY);
-        assertTrue(host.last("moveBubble").equals("moveBubble 8,1428"));
+        assertEquals("moveBubble 8,1428 animated", host.last("moveBubble"));
         assertFalse(host.has("startRecording"));
     }
 
@@ -684,7 +684,9 @@ public class BubbleControllerTest {
         }
 
         @Override public void showBubble(int x, int y, int sizePx) { calls.add("showBubble " + x + "," + y + "," + sizePx); }
-        @Override public void moveBubble(int x, int y) { calls.add("moveBubble " + x + "," + y); }
+        @Override public void moveBubble(int x, int y, boolean animate) {
+            calls.add("moveBubble " + x + "," + y + (animate ? " animated" : ""));
+        }
         @Override public void hideBubble() { calls.add("hideBubble"); }
         @Override public void renderMode(Mode mode, float level, boolean loading) {
             calls.add("render " + mode + (loading ? " loading" : ""));

@@ -55,7 +55,8 @@ public interface BubbleHost {
 
     // Overlay
     void showBubble(int x, int y, int sizePx);
-    void moveBubble(int x, int y);
+    /** @param animate glide there (keyboard height change, edge snap); false follows a drag */
+    void moveBubble(int x, int y, boolean animate);
     void hideBubble();
     void renderMode(BubbleController.Mode mode, float audioLevel, boolean modelLoading);
     void showCancelChip(boolean visible, int x, int y, int sizePx, boolean armed);

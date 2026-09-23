@@ -47,6 +47,11 @@ public class InsertionAccessibilityService extends AccessibilityService implemen
     private static final String TAG = "FlowBubble";
     /** Coalesces bursts of accessibility events into one snapshot. */
     private static final long SNAPSHOT_DELAY_MS = 60;
+    /** Keyboard settle polling: one sample every 50 ms, give up after ~600 ms. */
+    private static final long SETTLE_POLL_MS = 50;
+    private static final int MAX_SETTLE_TRIES = 12;
+    private static final long ENTER_ANIM_MS = 160;
+    private static final long MOVE_ANIM_MS = 180;
     private static final float SHAKE_G = 2.5f;
     private static final long SHAKE_WINDOW_MS = 800;
     private static final long SHAKE_MIN_GAP_MS = 120;
@@ -73,6 +78,9 @@ public class InsertionAccessibilityService extends AccessibilityService implemen
     private boolean mModelLoading;
     private boolean mChipArmed, mTargetArmed;
     private boolean mSamsungBlurOn;
+    private Rect mLastIme;
+    private int mSettleTries;
+    private android.animation.ValueAnimator mMoveAnim;
     private java.util.function.Consumer<Boolean> mBlurListener;
     private View mChipView;
     private WindowManager.LayoutParams mChipParams;
@@ -212,6 +220,7 @@ public class InsertionAccessibilityService extends AccessibilityService implemen
         if (mController == null) return;
         boolean keyboardVisible = false;
         int keyboardTop = 0;
+        Rect ime = null;
         try {
             List<AccessibilityWindowInfo> windows = getWindows();
             for (AccessibilityWindowInfo w : windows) {
@@ -225,12 +234,27 @@ public class InsertionAccessibilityService extends AccessibilityService implemen
                     if (r.height() > 0 && r.width() >= screenWidth() / 2) {
                         keyboardVisible = true;
                         keyboardTop = r.top;
+                        ime = r;
                     }
                 }
             }
         } catch (Exception e) {
             Log.w(TAG, "getWindows failed", e);
         }
+
+        // The keyboard slides (and on some keyboards scales) into place over
+        // ~300 ms, and accessibility events only sample that animation. Placing
+        // the bubble from a mid-animation sample makes it jump in steps, so wait
+        // until the keyboard window stops moving and is fully on screen.
+        if (ime != null && !keyboardSettled(ime)) {
+            if (++mSettleTries <= MAX_SETTLE_TRIES) {
+                mMain.removeCallbacks(mSnapshotTask);
+                mMain.postDelayed(mSnapshotTask, SETTLE_POLL_MS);
+                return;
+            }
+        }
+        mSettleTries = 0;
+        mLastIme = ime;
 
         FieldInfo field = null;
         String pkg = null;
@@ -262,6 +286,14 @@ public class InsertionAccessibilityService extends AccessibilityService implemen
                     + " cls=" + field.className + " id=" + field.viewId));
         }
         mController.onFocusSnapshot(field, pkg, keyboardVisible, keyboardTop, locked);
+    }
+
+    /** Same bounds as the previous sample and entirely on screen. */
+    private boolean keyboardSettled(Rect ime) {
+        boolean onScreen = ime.bottom <= screenHeight() + dpToPx(4) && ime.top >= 0;
+        boolean same = ime.equals(mLastIme);
+        mLastIme = new Rect(ime);
+        return onScreen && same;
     }
 
     /** Upper bound on nodes visited when looking inside a focused host view. */
@@ -353,6 +385,7 @@ public class InsertionAccessibilityService extends AccessibilityService implemen
 
     @Override
     public void showBubble(int x, int y, int sizePx) {
+        if (mMoveAnim != null) mMoveAnim.cancel();
         mBubbleX = x;
         mBubbleY = y;
         mBubbleSize = sizePx;
@@ -367,6 +400,11 @@ public class InsertionAccessibilityService extends AccessibilityService implemen
                 mBubbleWindow = new BubbleWindow(this, mBubbleView);
                 int[] b = windowBounds(appearance());
                 mBubbleWindow.show(b[0], b[1], b[2], b[2]);
+                mBubbleView.setAlpha(0f);
+                mBubbleView.setScaleX(0.6f);
+                mBubbleView.setScaleY(0.6f);
+                mBubbleView.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(ENTER_ANIM_MS)
+                        .setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
             } catch (Exception e) {
                 Log.e(TAG, "bubble window failed", e);
                 mBubbleView = null;
@@ -426,14 +464,31 @@ public class InsertionAccessibilityService extends AccessibilityService implemen
     }
 
     @Override
-    public void moveBubble(int x, int y) {
-        mBubbleX = x;
-        mBubbleY = y;
-        applyGeometry();
+    public void moveBubble(int x, int y, boolean animate) {
+        if (mMoveAnim != null) mMoveAnim.cancel();
+        if (!animate || mBubbleWindow == null) {
+            mBubbleX = x;
+            mBubbleY = y;
+            applyGeometry();
+            return;
+        }
+        final int fromX = mBubbleX, fromY = mBubbleY;
+        mMoveAnim = android.animation.ValueAnimator.ofFloat(0f, 1f);
+        mMoveAnim.setDuration(MOVE_ANIM_MS);
+        mMoveAnim.setInterpolator(new android.view.animation.DecelerateInterpolator());
+        mMoveAnim.addUpdateListener(va -> {
+            float f = (float) va.getAnimatedValue();
+            mBubbleX = Math.round(fromX + (x - fromX) * f);
+            mBubbleY = Math.round(fromY + (y - fromY) * f);
+            applyGeometry();
+        });
+        mMoveAnim.start();
     }
 
     @Override
     public void hideBubble() {
+        if (mMoveAnim != null) mMoveAnim.cancel();
+        mMoveAnim = null;
         if (mBubbleWindow != null) mBubbleWindow.dismiss();
         mBubbleWindow = null;
         mBubbleView = null;

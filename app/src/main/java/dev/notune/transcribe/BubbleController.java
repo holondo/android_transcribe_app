@@ -130,7 +130,7 @@ public final class BubbleController {
             if (dragging) {
                 bubbleX = downBubbleX + dx;
                 bubbleY = downBubbleY + dy;
-                host.moveBubble(bubbleX, bubbleY);
+                host.moveBubble(bubbleX, bubbleY, false);
                 boolean armed = bubbleCentreInTarget();
                 if (armed != snoozeArmed) {
                     snoozeArmed = armed;
@@ -329,7 +329,7 @@ public final class BubbleController {
         } else if (allowed) {
             int oldX = bubbleX, oldY = bubbleY;
             place();
-            if (!dragging && (oldX != bubbleX || oldY != bubbleY)) host.moveBubble(bubbleX, bubbleY);
+            if (!dragging && (oldX != bubbleX || oldY != bubbleY)) host.moveBubble(bubbleX, bubbleY, true);
         } else if (mode != Mode.HIDDEN) {
             hide();
         }
@@ -550,7 +550,7 @@ public final class BubbleController {
         host.saveOffsetY(offset);
         settings = host.settings();
         place();
-        host.moveBubble(bubbleX, bubbleY);
+        host.moveBubble(bubbleX, bubbleY, true);
     }
 
     private int[] chipOrigin() {
