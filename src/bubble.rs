@@ -2,25 +2,28 @@ use jni::objects::{JClass, JObject};
 use jni::sys::jboolean;
 use jni::JNIEnv;
 use once_cell::sync::Lazy;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use crate::engine;
 use crate::voice_session::{self, VoiceSessionState};
 
 static BUBBLE_STATE: Lazy<Mutex<Option<VoiceSessionState>>> = Lazy::new(|| Mutex::new(None));
 
+/// Creates the Flow bubble's voice session without loading the model. The
+/// target (the accessibility service) receives onStatusUpdate / onAudioLevel /
+/// onTextTranscribed and doubles as the Context the engine loads from.
 #[no_mangle]
-pub unsafe extern "system" fn Java_dev_notune_transcribe_BubbleService_initNative(
+pub unsafe extern "system" fn Java_dev_notune_transcribe_BubbleRecorder_initNative(
     env: JNIEnv,
     _class: JClass,
-    service: JObject,
+    target: JObject,
 ) {
-    let state = voice_session::init_session(env, service);
+    let state = voice_session::init_session_lazy(env, target);
     *BUBBLE_STATE.lock().unwrap() = Some(state);
 }
 
 #[no_mangle]
-pub unsafe extern "system" fn Java_dev_notune_transcribe_BubbleService_cleanupNative(
+pub unsafe extern "system" fn Java_dev_notune_transcribe_BubbleRecorder_cleanupNative(
     _env: JNIEnv,
     _class: JClass,
 ) {
@@ -28,7 +31,7 @@ pub unsafe extern "system" fn Java_dev_notune_transcribe_BubbleService_cleanupNa
 }
 
 #[no_mangle]
-pub unsafe extern "system" fn Java_dev_notune_transcribe_BubbleService_startRecordingNative(
+pub unsafe extern "system" fn Java_dev_notune_transcribe_BubbleRecorder_startRecordingNative(
     env: JNIEnv,
     _class: JClass,
 ) {
@@ -39,7 +42,7 @@ pub unsafe extern "system" fn Java_dev_notune_transcribe_BubbleService_startReco
 }
 
 #[no_mangle]
-pub unsafe extern "system" fn Java_dev_notune_transcribe_BubbleService_stopRecordingNative(
+pub unsafe extern "system" fn Java_dev_notune_transcribe_BubbleRecorder_stopRecordingNative(
     env: JNIEnv,
     _class: JClass,
 ) {
@@ -49,40 +52,54 @@ pub unsafe extern "system" fn Java_dev_notune_transcribe_BubbleService_stopRecor
     }
 }
 
-/// Battery-saver unload: frees the shared model only when no component holds a
-/// reference (see `engine::unload_if_idle`). The bubble's own session
-/// (`BUBBLE_STATE`) is kept — only the heavy model is dropped, so the overlay
-/// stays live and the next tap reloads. Returns whether the model was unloaded
-/// (or already absent); `false` means another transcription is in flight and
-/// the caller should retry later.
+/// Stops capture and discards the audio; nothing is transcribed.
 #[no_mangle]
-pub unsafe extern "system" fn Java_dev_notune_transcribe_BubbleService_unloadNative(
+pub unsafe extern "system" fn Java_dev_notune_transcribe_BubbleRecorder_cancelRecordingNative(
+    env: JNIEnv,
+    _class: JClass,
+) {
+    let mut guard = BUBBLE_STATE.lock().unwrap();
+    if let Some(state) = guard.as_mut() {
+        voice_session::cancel_recording(env, state);
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "system" fn Java_dev_notune_transcribe_BubbleRecorder_isEngineLoadedNative(
+    _env: JNIEnv,
+    _class: JClass,
+) -> jboolean {
+    engine::is_engine_loaded() as jboolean
+}
+
+/// Battery-saver unload: frees the shared model only when no component holds a
+/// reference (see `engine::unload_if_idle`). The session is kept, so the next
+/// recording reloads. Returns whether the model was unloaded (or already
+/// absent); `false` means another transcription is in flight.
+#[no_mangle]
+pub unsafe extern "system" fn Java_dev_notune_transcribe_BubbleRecorder_unloadNative(
     _env: JNIEnv,
     _class: JClass,
 ) -> jboolean {
     engine::unload_if_idle() as jboolean
 }
 
-/// Reloads the shared engine on a caller-owned background thread, blocking
-/// until it is ready or fails. Clones the session's JVM/target refs out of
-/// `BUBBLE_STATE` and releases the lock before loading so a slow load never
-/// blocks recording start/stop. Returns `false` when there is no session
-/// (never start a recording then) or the load failed.
+/// Loads the shared engine, blocking until it is ready or fails. Call from a
+/// background thread. Status updates go to `sink` (a Context), not to the
+/// session target, so a warm-up failure never reads as a recording error.
 #[no_mangle]
-pub unsafe extern "system" fn Java_dev_notune_transcribe_BubbleService_ensureEngineNative(
-    _env: JNIEnv,
+pub unsafe extern "system" fn Java_dev_notune_transcribe_BubbleRecorder_loadEngineNative(
+    env: JNIEnv,
     _class: JClass,
+    sink: JObject,
 ) -> jboolean {
-    let parts = {
-        let guard = BUBBLE_STATE.lock().unwrap();
-        guard
-            .as_ref()
-            .map(|state| (state.jvm.clone(), state.target_ref.clone()))
+    let jvm = match env.get_java_vm() {
+        Ok(vm) => Arc::new(vm),
+        Err(_) => return 0,
     };
-    match parts {
-        Some((jvm, target_ref)) => {
-            engine::ensure_loaded_from_thread(&jvm, &target_ref).is_ok() as jboolean
-        }
-        None => 0 as jboolean,
-    }
+    let sink_ref = match env.new_global_ref(&sink) {
+        Ok(r) => r,
+        Err(_) => return 0,
+    };
+    engine::ensure_loaded_from_thread(&jvm, &sink_ref).is_ok() as jboolean
 }

@@ -5,9 +5,9 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <!-- Package visibility (Android 11+): lets resolveActivity()/queryIntentActivities()
          for the speech intent see other handlers, so MainActivity can tell whether this
@@ -130,13 +130,8 @@
                 android:resource="@xml/method" />
         </service>
 
-        <!-- Floating mic bubble service -->
-        <service
-            android:name=".BubbleService"
-            android:foregroundServiceType="microphone"
-            android:exported="false" />
-
-        <!-- Accessibility service for optional direct text insertion -->
+        <!-- Flow bubble: shows the mic bubble on text-field focus and inserts
+             the transcription (see docs/specs/flow-bubble.md) -->
         <service
             android:name=".InsertionAccessibilityService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
@@ -148,6 +143,12 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/accessibility_insertion" />
         </service>
+
+        <!-- Flow bubble style -->
+        <activity
+            android:name=".BubbleStyleActivity"
+            android:label="@string/style_title"
+            android:exported="false" />
 
         <!-- Transcription history -->
         <activity

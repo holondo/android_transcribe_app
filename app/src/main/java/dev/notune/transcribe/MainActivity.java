@@ -92,11 +92,11 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.btn_history).setOnClickListener(v ->
                 startActivity(new Intent(this, HistoryActivity.class)));
 
-        setupBubbleSwitch();
-        setupA11ySwitch();
+        setupBubbleSection();
         setupRetentionRadio();
         setupBubbleUnloadRadio();
-        setupBubbleSizeRadio();
+        findViewById(R.id.btn_bubble_style).setOnClickListener(v ->
+                startActivity(new Intent(this, BubbleStyleActivity.class)));
 
         benchButton = findViewById(R.id.btn_benchmark);
         benchResultText = findViewById(R.id.text_bench_result);
@@ -150,6 +150,8 @@ public class MainActivity extends AppCompatActivity {
             }
             if (newMode != ThemePrefs.getMode(this)) {
                 ThemePrefs.setMode(this, newMode);
+                // The Flow bubble follows this setting too.
+                InsertionAccessibilityService.notifyPrefsChanged();
             }
         });
 
@@ -165,6 +167,7 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         // Re-check on return from the keyboard chooser, settings, or a test run.
         updateVoiceInputStatus();
+        updateBubbleStatus();
     }
 
     /**
@@ -320,50 +323,92 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void setupBubbleSwitch() {
+    private void setupBubbleSection() {
+        findViewById(R.id.btn_bubble_mic).setOnClickListener(v -> checkAndRequestPermissions());
+        findViewById(R.id.btn_bubble_a11y).setOnClickListener(v -> showA11yConsent());
+        findViewById(R.id.btn_bubble_end_snooze).setOnClickListener(v -> {
+            BubblePrefs.setSnoozeUntil(this, 0);
+            InsertionAccessibilityService.notifyPrefsChanged();
+            updateBubbleStatus();
+        });
+
         CompoundButton sw = findViewById(R.id.switch_bubble);
         sw.setChecked(BubblePrefs.isEnabled(this));
         sw.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (isChecked) {
-                if (!Settings.canDrawOverlays(this)) {
-                    sw.setChecked(false);
-                    Toast.makeText(this, R.string.bubble_need_overlay, Toast.LENGTH_LONG).show();
-                    startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                            Uri.parse("package:" + getPackageName())));
-                    return;
-                }
-                BubblePrefs.setEnabled(this, true);
-                Intent intent = new Intent(this, BubbleService.class);
-                intent.setAction(BubbleService.ACTION_SHOW);
-                ContextCompat.startForegroundService(this, intent);
-            } else {
-                BubblePrefs.setEnabled(this, false);
-                Intent intent = new Intent(this, BubbleService.class);
-                intent.setAction(BubbleService.ACTION_HIDE);
-                startService(intent);
-            }
+            BubblePrefs.setEnabled(this, isChecked);
+            InsertionAccessibilityService.notifyPrefsChanged();
+        });
+
+        CompoundButton search = findViewById(R.id.switch_bubble_hide_search);
+        search.setChecked(BubblePrefs.isHideInSearch(this));
+        search.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            BubblePrefs.setHideInSearch(this, isChecked);
+            InsertionAccessibilityService.notifyPrefsChanged();
+        });
+
+        CompoundButton noKeyboard = findViewById(R.id.switch_bubble_no_keyboard);
+        noKeyboard.setChecked(BubblePrefs.isShowWithoutKeyboard(this));
+        noKeyboard.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            BubblePrefs.setShowWithoutKeyboard(this, isChecked);
+            InsertionAccessibilityService.notifyPrefsChanged();
         });
     }
 
-    private void setupA11ySwitch() {
-        CompoundButton sw = findViewById(R.id.switch_a11y);
-        sw.setChecked(BubblePrefs.hasA11yConsent(this));
-        sw.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (isChecked) {
-                new MaterialAlertDialogBuilder(this)
-                        .setTitle(R.string.a11y_consent_title)
-                        .setMessage(R.string.a11y_consent_body)
-                        .setPositiveButton(R.string.a11y_consent_accept, (d, w) -> {
-                            BubblePrefs.setA11yConsent(this, true);
-                            InsertionAccessibilityService.openSettings(this);
-                        })
-                        .setNegativeButton(android.R.string.cancel, (d, w) -> sw.setChecked(false))
-                        .setOnCancelListener(d -> sw.setChecked(false))
-                        .show();
-            } else {
-                BubblePrefs.setA11yConsent(this, false);
-            }
-        });
+    /**
+     * Prominent disclosure before the user turns on the accessibility service.
+     * Consent is stored first; the bubble stays off until both consent and the
+     * running service are present.
+     */
+    private void showA11yConsent() {
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.a11y_consent_title)
+                .setMessage(R.string.a11y_consent_body)
+                .setPositiveButton(R.string.a11y_consent_accept, (d, w) -> {
+                    BubblePrefs.setA11yConsent(this, true);
+                    InsertionAccessibilityService.notifyPrefsChanged();
+                    if (!InsertionAccessibilityService.isRunning()) {
+                        InsertionAccessibilityService.openSettings(this);
+                    }
+                    updateBubbleStatus();
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    /** Refreshes the setup steps and the snooze row of the Flow bubble card. */
+    private void updateBubbleStatus() {
+        boolean micGranted = checkSelfPermission(android.Manifest.permission.RECORD_AUDIO)
+                == PackageManager.PERMISSION_GRANTED;
+        setStep(R.id.img_bubble_mic, R.id.text_bubble_mic, R.id.btn_bubble_mic, micGranted,
+                getString(micGranted ? R.string.bubble_mic_ok : R.string.bubble_mic_needed));
+
+        boolean a11yActive = InsertionAccessibilityService.isRunning()
+                && BubblePrefs.hasA11yConsent(this);
+        setStep(R.id.img_bubble_a11y, R.id.text_bubble_a11y, R.id.btn_bubble_a11y, a11yActive,
+                getString(a11yActive ? R.string.bubble_a11y_active : R.string.bubble_a11y_inactive));
+
+        long until = BubblePrefs.getSnoozeUntil(this);
+        View row = findViewById(R.id.row_bubble_snooze);
+        if (until > System.currentTimeMillis()) {
+            String time = android.text.format.DateFormat.getTimeFormat(this)
+                    .format(new java.util.Date(until));
+            ((TextView) findViewById(R.id.text_bubble_snooze))
+                    .setText(getString(R.string.bubble_snoozed_until, time));
+            row.setVisibility(View.VISIBLE);
+        } else {
+            row.setVisibility(View.GONE);
+        }
+    }
+
+    private void setStep(int iconId, int textId, int buttonId, boolean ok, String message) {
+        ImageView icon = findViewById(iconId);
+        icon.setImageResource(ok ? R.drawable.ic_check_circle : R.drawable.ic_error);
+        int tint = ok
+                ? ContextCompat.getColor(this, R.color.status_ok)
+                : themeColor(com.google.android.material.R.attr.colorError);
+        ImageViewCompat.setImageTintList(icon, ColorStateList.valueOf(tint));
+        ((TextView) findViewById(textId)).setText(message);
+        findViewById(buttonId).setVisibility(ok ? View.GONE : View.VISIBLE);
     }
 
     private void setupRetentionRadio() {
@@ -409,35 +454,16 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void setupBubbleSizeRadio() {
-        RadioGroup rg = findViewById(R.id.rg_bubble_size);
-        switch (BubblePrefs.getSizeDp(this)) {
-            case 48: rg.check(R.id.rb_size_small); break;
-            case 72: rg.check(R.id.rb_size_large); break;
-            default: rg.check(R.id.rb_size_medium); break;
-        }
-        rg.setOnCheckedChangeListener((group, checkedId) -> {
-            int val;
-            if (checkedId == R.id.rb_size_small) val = 48;
-            else if (checkedId == R.id.rb_size_large) val = 72;
-            else val = 56;
-            BubblePrefs.setSizeDp(this, val);
-            notifyBubbleRefresh();
-        });
-    }
-
     /** Tells a visible bubble to re-read its settings (size / unload interval). */
     private void notifyBubbleRefresh() {
-        if (!BubblePrefs.isEnabled(this)) return;
-        Intent intent = new Intent(this, BubbleService.class);
-        intent.setAction(BubbleService.ACTION_REFRESH);
-        startService(intent);
+        InsertionAccessibilityService.notifyPrefsChanged();
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         if (requestCode == PERM_REQ_CODE) {
             updateVoiceInputStatus();
+            updateBubbleStatus();
         }
     }
 

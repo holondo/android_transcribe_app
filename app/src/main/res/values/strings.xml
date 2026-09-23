@@ -141,21 +141,15 @@
     <string name="voice_help_body">How to use it\n• Open any app and tap the microphone on a supported keyboard/app. A small panel slides up, you speak, tap to stop, and the text is inserted. (Enable "Auto-stop after silence" in the settings to have it stop by itself.)\n\nWhich keyboards open the voice panel\n• Microsoft SwiftKey (not open source) and website voice search open the panel directly.\n• AnySoftKeyboard is the open-source way to get the panel: its mic key opens it as long as no voice keyboard is enabled on your system.\n\nOther open-source keyboards\n• HeliBoard, FlorisBoard, OpenBoard, Fossify Keyboard and Unexpected Keyboard don\'t open the panel: their mic key switches to the "Offline Voice Input" keyboard instead. Enable it once (see "Alternative: Voice keyboard"), speak there, and use its keyboard-switch key to go back. FUTO Keyboard ships its own voice input.\n• Gboard only uses Google\'s own voice typing and can\'t use this app at all.\n\nIf SwiftKey\'s own voice typing opens instead\n• Settings → Rich input → turn off "Multi-modal voice typing".\n• Then tap the mic again and pick "Offline Voice Input".\n\nIf Android asks which app to use\n• Choose "Offline Voice Input" and tap "Always".\n\nIf another app always opens instead\n• Open Settings → Apps → that app → "Open by default" → Clear defaults, then try again.</string>
 
     <!-- Floating mic bubble -->
-    <string name="section_bubble">Floating mic bubble</string>
-    <string name="desc_bubble">Show a draggable microphone bubble on screen. Tap it to record; the transcription is copied to your clipboard and saved to history.</string>
-    <string name="bubble_enable">Show mic bubble</string>
-    <string name="bubble_need_overlay">Please allow display over other apps first.</string>
+    <string name="section_bubble">Flow bubble</string>
+    <string name="desc_bubble">A mic bubble appears above the keyboard when you focus a text field. Tap to dictate, or hold to talk. The text goes straight into the field and into your history.</string>
+    <string name="bubble_enable">Show bubble in text fields</string>
     <string name="bubble_need_mic">Microphone permission required.</string>
-    <string name="bubble_idle">Mic bubble – tap to record</string>
+    <string name="bubble_idle">Mic bubble – tap to record, hold to talk</string>
     <string name="bubble_recording">Recording – tap to stop</string>
     <string name="bubble_processing">Processing…</string>
     <string name="bubble_copied">Copied to clipboard</string>
     <string name="bubble_inserted">Inserted into text field</string>
-    <string name="bubble_channel_name">Mic bubble</string>
-    <string name="bubble_notification_title">Mic bubble active</string>
-    <string name="bubble_notification_text">Tap the bubble to record speech</string>
-    <string name="bubble_stop_recording">Stop recording</string>
-    <string name="bubble_hide">Hide bubble</string>
     <string name="bubble_loading">Loading model…</string>
     <string name="bubble_load_failed">Couldn\'t load the model. Please try again.</string>
     <string name="bubble_unload_title">Unload when idle</string>
@@ -164,21 +158,50 @@
     <string name="bubble_unload_5">5 min</string>
     <string name="bubble_unload_15">15 min</string>
     <string name="bubble_unload_30">30 min</string>
-    <string name="bubble_size_title">Bubble size</string>
-    <string name="bubble_size_desc">How large the floating bubble appears on screen.</string>
-    <string name="bubble_size_small">Small</string>
-    <string name="bubble_size_medium">Medium</string>
-    <string name="bubble_size_large">Large</string>
+    <string name="style_title">Bubble style</string>
+    <string name="btn_bubble_style">Bubble style</string>
+    <string name="style_preview_light">Light</string>
+    <string name="style_preview_dark">Dark</string>
+    <string name="style_material">Material</string>
+    <string name="style_mono">Black &amp; white</string>
+    <string name="style_blur">Blur</string>
+    <string name="style_tinted_blur">Tinted blur</string>
+    <string name="style_label">Style</string>
+    <string name="style_theme_note">Light or dark follows the app\'s Appearance setting.</string>
+    <string name="style_blur_unsupported">Blur isn\'t supported on this device; a frosted look is used instead.</string>
+    <string name="style_size">Size</string>
+    <string name="style_opacity">Idle opacity</string>
+    <string name="style_shrink">Shrink when idle</string>
+    <string name="style_shrink_desc">After 5 seconds without use, the bubble gets smaller.</string>
+    <string name="style_shrink_dot">Shrink to a dot</string>
+    <string name="style_shrink_dot_desc">Shrink to a small dot at the screen edge instead.</string>
+    <string name="style_opacity_value">%1$d%%</string>
+    <string name="style_size_xs" translatable="false">XS</string>
+    <string name="style_size_s" translatable="false">S</string>
+    <string name="style_size_m" translatable="false">M</string>
+    <string name="style_size_l" translatable="false">L</string>
+    <string name="bubble_cancel">Cancel recording</string>
+    <string name="bubble_snooze_target">Drop here to hide the bubble for 10 minutes</string>
+    <string name="bubble_snoozed">Bubble hidden for 10 minutes. Shake your phone to bring it back.</string>
+    <string name="bubble_limit_warning">One minute of recording left</string>
+    <string name="bubble_hide_search">Hide in search fields</string>
+    <string name="bubble_hide_search_desc">Don\'t show the bubble in search bars.</string>
+    <string name="bubble_no_keyboard">Show without on-screen keyboard</string>
+    <string name="bubble_no_keyboard_desc">Also show the bubble when you type with a physical keyboard.</string>
+    <string name="bubble_snoozed_until">Snoozed until %1$s</string>
+    <string name="bubble_end_snooze">End snooze now</string>
+    <string name="bubble_mic_needed">Microphone permission needed</string>
+    <string name="bubble_mic_ok">Microphone allowed</string>
+    <string name="bubble_grant">Allow</string>
+    <string name="bubble_a11y_active">Accessibility service active</string>
+    <string name="bubble_a11y_inactive">Accessibility service not active</string>
+    <string name="bubble_a11y_turn_on">Turn on</string>
 
     <!-- Accessibility direct insertion -->
-    <string name="section_a11y">Direct text insertion (optional)</string>
-    <string name="desc_a11y">When enabled, transcriptions from the mic bubble are inserted directly into the focused text field via an accessibility service. If insertion fails, the text is copied to your clipboard instead. This service only writes to the focused editable field; it never reads or stores field content, and skips password fields.</string>
-    <string name="a11y_enable">Enable direct insertion</string>
     <string name="a11y_consent_title">Accessibility permission</string>
-    <string name="a11y_consent_body">Direct insertion uses an Android accessibility service to type transcribed text into the focused text field.\n\nWhat it does:\n• Writes transcribed text to the currently focused, visible editable field\n• Skips password and sensitive fields\n\nWhat it does NOT do:\n• Read or store any field content\n• Overwrite existing text (it appends at the cursor)\n• Access fields that are not focused\n\nYou will be taken to Accessibility Settings to enable the service.</string>
+    <string name="a11y_consent_body">The Flow bubble uses an Android accessibility service.\n\nWhat it does:\n• Detects when a text field is focused and the keyboard is open, to show the bubble\n• Reads only the field type (for example password or number) to skip sensitive fields\n• Pastes the transcribed text into the focused field\n\nWhat it does NOT do:\n• Read or store the text of any field\n• Overwrite existing text (it inserts at the cursor)\n• Send anything off your device\n\nYou will be taken to Accessibility Settings to turn on the service.</string>
     <string name="a11y_consent_accept">I understand, continue</string>
-    <string name="a11y_service_description">Inserts transcribed speech into the focused text field. Only writes text; never reads field content.</string>
-    <string name="a11y_not_enabled">Accessibility service not enabled. Open Accessibility Settings to turn it on.</string>
+    <string name="a11y_service_description">Shows the mic bubble when a text field is focused and inserts transcribed speech there. Never reads or stores field text.</string>
 
     <!-- Transcription history -->
     <string name="section_history">Transcription history</string>
