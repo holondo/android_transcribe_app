@@ -2,7 +2,6 @@ package dev.notune.transcribe;
 
 import android.content.ClipData;
 import android.content.ClipboardManager;
-import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -10,7 +9,7 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AppCompatActivity;
+import android.app.Activity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -21,53 +20,42 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-public class HistoryActivity extends AppCompatActivity {
+/** The History tab: every transcription, newest first, with copy and delete. */
+final class HistoryPage {
 
-    private RecyclerView recyclerView;
-    private HistoryAdapter adapter;
-    private View emptyView;
+    private final Activity activity;
+    private final RecyclerView recyclerView;
+    private final HistoryAdapter adapter;
+    private final View emptyView;
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_history);
-
-        setSupportActionBar(findViewById(R.id.toolbar));
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        }
-
-        recyclerView = findViewById(R.id.history_list);
-        emptyView = findViewById(R.id.history_empty);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+    HistoryPage(Activity activity, View root) {
+        this.activity = activity;
+        recyclerView = root.findViewById(R.id.history_list);
+        emptyView = root.findViewById(R.id.history_empty);
+        recyclerView.setLayoutManager(new LinearLayoutManager(activity));
         adapter = new HistoryAdapter();
         recyclerView.setAdapter(adapter);
 
-        findViewById(R.id.btn_clear_all).setOnClickListener(v -> confirmClearAll());
+        root.findViewById(R.id.btn_clear_all).setOnClickListener(v -> confirmClearAll());
 
         loadHistory();
     }
 
-    @Override
-    public boolean onSupportNavigateUp() {
-        finish();
-        return true;
-    }
-
-    private void loadHistory() {
+    /** Reloads the list (call when the tab is shown or retention changes). */
+    void loadHistory() {
         List<TranscriptionHistory.Entry> entries =
-                TranscriptionHistory.get(this).query(0);
+                TranscriptionHistory.get(activity).query(0);
         adapter.setEntries(entries);
         emptyView.setVisibility(entries.isEmpty() ? View.VISIBLE : View.GONE);
         recyclerView.setVisibility(entries.isEmpty() ? View.GONE : View.VISIBLE);
     }
 
     private void confirmClearAll() {
-        new MaterialAlertDialogBuilder(this)
+        new MaterialAlertDialogBuilder(activity)
                 .setTitle(R.string.history_clear_title)
                 .setMessage(R.string.history_clear_body)
                 .setPositiveButton(R.string.history_clear_confirm, (d, w) -> {
-                    TranscriptionHistory.get(this).clearAll();
+                    TranscriptionHistory.get(activity).clearAll();
                     loadHistory();
                 })
                 .setNegativeButton(android.R.string.cancel, null)
@@ -96,18 +84,18 @@ public class HistoryActivity extends AppCompatActivity {
         public void onBindViewHolder(VH h, int position) {
             TranscriptionHistory.Entry e = entries.get(position);
             h.text.setText(e.text);
-            h.meta.setText(getString(R.string.history_meta,
+            h.meta.setText(activity.getString(R.string.history_meta,
                     sourceLabel(e.source), fmt.format(new Date(e.timestamp))));
 
             h.copyBtn.setOnClickListener(v -> {
-                ClipboardManager cm = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                ClipboardManager cm = (ClipboardManager) activity.getSystemService(Activity.CLIPBOARD_SERVICE);
                 cm.setPrimaryClip(ClipData.newPlainText("Transcription", e.text));
-                Toast.makeText(HistoryActivity.this,
+                Toast.makeText(activity,
                         R.string.history_copied, Toast.LENGTH_SHORT).show();
             });
 
             h.deleteBtn.setOnClickListener(v -> {
-                TranscriptionHistory.get(HistoryActivity.this).delete(e.id);
+                TranscriptionHistory.get(activity).delete(e.id);
                 entries.remove(position);
                 notifyItemRemoved(position);
                 notifyItemRangeChanged(position, entries.size());
@@ -126,15 +114,15 @@ public class HistoryActivity extends AppCompatActivity {
         private String sourceLabel(String source) {
             switch (source) {
                 case TranscriptionHistory.SOURCE_BUBBLE:
-                    return getString(R.string.history_source_bubble);
+                    return activity.getString(R.string.history_source_bubble);
                 case TranscriptionHistory.SOURCE_POPUP:
-                    return getString(R.string.history_source_popup);
+                    return activity.getString(R.string.history_source_popup);
                 case TranscriptionHistory.SOURCE_IME:
-                    return getString(R.string.history_source_ime);
+                    return activity.getString(R.string.history_source_ime);
                 case TranscriptionHistory.SOURCE_FILE:
-                    return getString(R.string.history_source_file);
+                    return activity.getString(R.string.history_source_file);
                 case TranscriptionHistory.SOURCE_SERVICE:
-                    return getString(R.string.history_source_service);
+                    return activity.getString(R.string.history_source_service);
                 default:
                     return source;
             }

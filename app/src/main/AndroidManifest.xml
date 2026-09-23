@@ -144,19 +144,6 @@
                 android:resource="@xml/accessibility_insertion" />
         </service>
 
-        <!-- Flow bubble style -->
-        <activity
-            android:name=".BubbleStyleActivity"
-            android:label="@string/style_title"
-            android:exported="false" />
-
-        <!-- Transcription history -->
-        <activity
-            android:name=".HistoryActivity"
-            android:label="@string/history_title"
-            android:configChanges="orientation|keyboardHidden|screenSize"
-            android:exported="false" />
-
         <!-- Custom words (Whisper recognition bias) -->
         <activity
             android:name=".CustomWordsActivity"

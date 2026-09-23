@@ -215,4 +215,9 @@
     <string name="retention_50">50</string>
     <string name="retention_100">100</string>
     <string name="retention_unlimited">Ilimitado</string>
+
+    <!-- Floating tab bar -->
+    <string name="tab_home">Início</string>
+    <string name="tab_style">Estilo</string>
+    <string name="section_recording">Gravação</string>
 </resources>

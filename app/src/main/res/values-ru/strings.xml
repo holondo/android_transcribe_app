@@ -217,4 +217,9 @@
     <string name="retention_50">50</string>
     <string name="retention_100">100</string>
     <string name="retention_unlimited">Без ограничений</string>
+
+    <!-- Floating tab bar -->
+    <string name="tab_home">Главная</string>
+    <string name="tab_style">Стиль</string>
+    <string name="section_recording">Запись</string>
 </resources>

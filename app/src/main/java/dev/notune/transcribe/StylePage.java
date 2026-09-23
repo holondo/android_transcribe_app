@@ -4,7 +4,6 @@ import android.graphics.Outline;
 import android.graphics.RenderEffect;
 import android.graphics.Shader;
 import android.os.Build;
-import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,9 +16,8 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import androidx.appcompat.app.AppCompatActivity;
+import android.app.Activity;
 
-import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.button.MaterialButtonToggleGroup;
 import com.google.android.material.slider.Slider;
@@ -28,12 +26,12 @@ import dev.notune.transcribe.BubbleAppearance.Style;
 import dev.notune.transcribe.BubbleController.Mode;
 
 /**
- * "Bubble style": pick the style, the size, the idle opacity and auto-shrink,
- * with a live preview of the bubble's idle, recording and processing states
- * on light and dark sample backgrounds. Light or dark follows the app's
- * Appearance setting.
+ * The Flow bubble part of the Style tab: pick the style, the size, the idle
+ * opacity and auto-shrink, with a live preview of the bubble's idle,
+ * recording and processing states on light and dark sample backgrounds.
+ * Light or dark follows the app's Appearance setting (same tab).
  */
-public class BubbleStyleActivity extends AppCompatActivity {
+final class StylePage {
     private static final int PREVIEW_GAP_DP = 8;
     private static final int PREVIEW_BLUR_DP = 12;
     private static final Mode[] PREVIEW_MODES = {Mode.IDLE, Mode.RECORDING_TAP, Mode.PROCESSING};
@@ -42,25 +40,23 @@ public class BubbleStyleActivity extends AppCompatActivity {
     private static final int[] SIZE_LABELS = {
             R.string.style_size_xs, R.string.style_size_s, R.string.style_size_m, R.string.style_size_l};
 
+    private final Activity activity;
+    private final View root;
     private BubbleStyler mStyler;
     private boolean mBlurSupported;
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_bubble_style);
-        MaterialToolbar toolbar = findViewById(R.id.toolbar);
-        toolbar.setNavigationOnClickListener(v -> finish());
-
-        mStyler = new BubbleStyler(this);
-        mBlurSupported = BlurSupport.any((WindowManager) getSystemService(WINDOW_SERVICE));
-        findViewById(R.id.text_blur_unsupported).setVisibility(mBlurSupported ? View.GONE : View.VISIBLE);
+    StylePage(Activity activity, View root) {
+        this.activity = activity;
+        this.root = root;
+        mStyler = new BubbleStyler(activity);
+        mBlurSupported = BlurSupport.any((WindowManager) activity.getSystemService(Activity.WINDOW_SERVICE));
+        root.findViewById(R.id.text_blur_unsupported).setVisibility(mBlurSupported ? View.GONE : View.VISIBLE);
 
         Style[] styles = Style.values();
-        setupSegments(findViewById(R.id.toggle_style), STYLE_LABELS,
-                BubblePrefs.getStyle(this), i -> BubblePrefs.setStyle(this, styles[i]));
-        setupSegments(findViewById(R.id.toggle_size), SIZE_LABELS,
-                BubblePrefs.getScaleIndex(this), i -> BubblePrefs.setScaleIndex(this, i));
+        setupSegments(root.findViewById(R.id.toggle_style), STYLE_LABELS,
+                BubblePrefs.getStyle(activity), i -> BubblePrefs.setStyle(activity, styles[i]));
+        setupSegments(root.findViewById(R.id.toggle_size), SIZE_LABELS,
+                BubblePrefs.getScaleIndex(activity), i -> BubblePrefs.setScaleIndex(activity, i));
         setupOpacity();
         setupShrink();
         refresh();
@@ -71,16 +67,16 @@ public class BubbleStyleActivity extends AppCompatActivity {
                                java.util.function.IntConsumer onSelect) {
         int[] ids = new int[labels.length];
         for (int i = 0; i < labels.length; i++) {
-            MaterialButton button = (MaterialButton) LayoutInflater.from(this)
+            MaterialButton button = (MaterialButton) LayoutInflater.from(activity)
                     .inflate(R.layout.item_style_segment, group, false);
             button.setText(labels[i]);
-            // The Material style keeps wide padding and one line; long labels
-            // ("Black & white", translations) need to wrap instead of ellipsizing.
+            // The Material style keeps wide padding; trim it so labels fit.
             int pad = dp(4);
             button.setPaddingRelative(pad, button.getPaddingTop(), pad, button.getPaddingBottom());
-            button.setSingleLine(false);
-            button.setMaxLines(2);
-            button.setEllipsize(null);
+            // One line; long labels ("Black & white", translations) shrink to fit.
+            button.setMaxLines(1);
+            androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(
+                    button, 9, 14, 1, android.util.TypedValue.COMPLEX_UNIT_SP);
             ids[i] = View.generateViewId();
             button.setId(ids[i]);
             group.addView(button);
@@ -99,32 +95,32 @@ public class BubbleStyleActivity extends AppCompatActivity {
     }
 
     private void setupOpacity() {
-        Slider slider = findViewById(R.id.slider_opacity);
-        TextView label = findViewById(R.id.text_opacity);
-        int opacity = BubblePrefs.getOpacity(this);
+        Slider slider = root.findViewById(R.id.slider_opacity);
+        TextView label = root.findViewById(R.id.text_opacity);
+        int opacity = BubblePrefs.getOpacity(activity);
         slider.setValue(opacity);
-        label.setText(getString(R.string.style_opacity_value, opacity));
+        label.setText(activity.getString(R.string.style_opacity_value, opacity));
         slider.addOnChangeListener((s, value, fromUser) -> {
             if (!fromUser) return;
-            BubblePrefs.setOpacity(this, Math.round(value));
-            label.setText(getString(R.string.style_opacity_value, Math.round(value)));
+            BubblePrefs.setOpacity(activity, Math.round(value));
+            label.setText(activity.getString(R.string.style_opacity_value, Math.round(value)));
             changed();
         });
     }
 
     private void setupShrink() {
-        CompoundButton shrink = findViewById(R.id.switch_shrink);
-        CompoundButton dot = findViewById(R.id.switch_shrink_dot);
-        shrink.setChecked(BubblePrefs.isAutoShrink(this));
-        dot.setChecked(BubblePrefs.isShrinkDot(this));
+        CompoundButton shrink = root.findViewById(R.id.switch_shrink);
+        CompoundButton dot = root.findViewById(R.id.switch_shrink_dot);
+        shrink.setChecked(BubblePrefs.isAutoShrink(activity));
+        dot.setChecked(BubblePrefs.isShrinkDot(activity));
         dot.setEnabled(shrink.isChecked());
         shrink.setOnCheckedChangeListener((b, checked) -> {
-            BubblePrefs.setAutoShrink(this, checked);
+            BubblePrefs.setAutoShrink(activity, checked);
             dot.setEnabled(checked);
             changed();
         });
         dot.setOnCheckedChangeListener((b, checked) -> {
-            BubblePrefs.setShrinkDot(this, checked);
+            BubblePrefs.setShrinkDot(activity, checked);
             changed();
         });
     }
@@ -137,10 +133,11 @@ public class BubbleStyleActivity extends AppCompatActivity {
 
     // --- Preview ----------------------------------------------------------------------
 
-    private void refresh() {
-        BubbleHost.Settings s = BubblePrefs.load(this);
-        fillPreview(findViewById(R.id.preview_light), findViewById(R.id.preview_light_row), s, false);
-        fillPreview(findViewById(R.id.preview_dark), findViewById(R.id.preview_dark_row), s, true);
+    /** Rebuilds the preview (also call when the tab is shown). */
+    void refresh() {
+        BubbleHost.Settings s = BubblePrefs.load(activity);
+        fillPreview(root.findViewById(R.id.preview_light), root.findViewById(R.id.preview_light_row), s, false);
+        fillPreview(root.findViewById(R.id.preview_dark), root.findViewById(R.id.preview_dark_row), s, true);
     }
 
     private void fillPreview(FrameLayout panel, LinearLayout row, BubbleHost.Settings s, boolean night) {
@@ -149,7 +146,7 @@ public class BubbleStyleActivity extends AppCompatActivity {
         for (Mode mode : PREVIEW_MODES) {
             BubbleAppearance a = BubbleAppearance.resolve(s, night, mBlurSupported, mode, false);
             int size = dp(s.sizeDp);
-            FrameLayout cell = new FrameLayout(this);
+            FrameLayout cell = new FrameLayout(activity);
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(size, size);
             lp.setMargins(gap / 2, 0, gap / 2, 0);
             cell.setLayoutParams(lp);
@@ -158,7 +155,7 @@ public class BubbleStyleActivity extends AppCompatActivity {
             if (a.blur && Build.VERSION.SDK_INT >= 31) {
                 // A blurred copy of the sample background, aligned to the panel,
                 // stands in for the window blur the real bubble gets.
-                blurLayer = new View(this);
+                blurLayer = new View(activity);
                 blurLayer.setBackgroundResource(night
                         ? R.drawable.bg_style_sample_dark : R.drawable.bg_style_sample_light);
                 blurLayer.setRenderEffect(RenderEffect.createBlurEffect(
@@ -176,7 +173,7 @@ public class BubbleStyleActivity extends AppCompatActivity {
                 cell.setClipToOutline(true);
             }
 
-            View bubble = LayoutInflater.from(this).inflate(R.layout.bubble_overlay, cell, false);
+            View bubble = LayoutInflater.from(activity).inflate(R.layout.bubble_overlay, cell, false);
             cell.addView(bubble);
             View disc = bubble.findViewById(R.id.bubble_disc);
             ImageView icon = bubble.findViewById(R.id.bubble_icon);
@@ -211,6 +208,6 @@ public class BubbleStyleActivity extends AppCompatActivity {
     }
 
     private int dp(int v) {
-        return Math.round(v * getResources().getDisplayMetrics().density);
+        return Math.round(v * activity.getResources().getDisplayMetrics().density);
     }
 }

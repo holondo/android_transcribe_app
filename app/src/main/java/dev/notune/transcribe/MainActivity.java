@@ -53,6 +53,27 @@ public class MainActivity extends AppCompatActivity {
     private Button benchButton;
     private TextView benchResultText;
 
+    // --- Tabs: Home, Style, History, Settings (floating tab bar) ---------------------
+    private static final String STATE_TAB = "tab";
+    private static final int[] TAB_PAGES = {
+            R.id.page_home, R.id.page_style, R.id.page_history, R.id.page_settings};
+    private static final int[] TAB_ICONS = {
+            R.drawable.ic_home, R.drawable.ic_palette, R.drawable.ic_history, R.drawable.ic_settings};
+    private static final int[] TAB_LABELS = {
+            R.string.tab_home, R.string.tab_style, R.string.history_title, R.string.section_settings};
+    /** Tab width at natural size, the gap on each side, and the pill's inner padding. */
+    private static final int TAB_ITEM_DP = 76;
+    private static final int TAB_ITEM_GAP_DP = 2;
+    private static final int TAB_BAR_PAD_DP = 6;
+    /** Screen margin on each side when the pill has to shrink. */
+    private static final int TAB_BAR_MARGIN_DP = 16;
+    /** Below this tab width, labels hide and only icons show. */
+    private static final int MIN_LABELLED_TAB_DP = 48;
+    private final View[] tabItems = new View[TAB_PAGES.length];
+    private int currentTab;
+    private StylePage stylePage;
+    private HistoryPage historyPage;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -89,14 +110,12 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.btn_custom_words).setOnClickListener(v ->
                 startActivity(new Intent(this, CustomWordsActivity.class)));
 
-        findViewById(R.id.btn_history).setOnClickListener(v ->
-                startActivity(new Intent(this, HistoryActivity.class)));
-
         setupBubbleSection();
-        setupRetentionRadio();
         setupBubbleUnloadRadio();
-        findViewById(R.id.btn_bubble_style).setOnClickListener(v ->
-                startActivity(new Intent(this, BubbleStyleActivity.class)));
+        stylePage = new StylePage(this, findViewById(R.id.page_style));
+        historyPage = new HistoryPage(this, findViewById(R.id.page_history));
+        setupRetentionRadio();
+        setupTabs(savedInstanceState != null ? savedInstanceState.getInt(STATE_TAB, 0) : 0);
 
         benchButton = findViewById(R.id.btn_benchmark);
         benchResultText = findViewById(R.id.text_bench_result);
@@ -160,6 +179,83 @@ public class MainActivity extends AppCompatActivity {
 
         // Start init
         initNative(this);
+    }
+
+    /** Builds the floating tinted-blur tab bar and shows {@code initial}. */
+    private void setupTabs(int initial) {
+        BackdropBlurView bar = findViewById(R.id.tab_bar);
+        float density = getResources().getDisplayMetrics().density;
+        bar.setSource(findViewById(R.id.pages), 24 * density);
+        bar.setCornerRadius(32 * density);
+        int surface = themeColor(com.google.android.material.R.attr.colorSurfaceContainer);
+        // Tinted blur: the theme's surface colour over a real backdrop blur.
+        bar.setTint(androidx.core.graphics.ColorUtils.setAlphaComponent(surface, 0xB8),
+                androidx.core.graphics.ColorUtils.setAlphaComponent(surface, 0xF2));
+
+        // Natural size: fixed-width tabs. On a screen narrower than that, the
+        // pill takes the screen minus margins and the tabs share it evenly;
+        // labels shrink (autosize) and, only when a tab gets tiny, hide.
+        int naturalDp = TAB_PAGES.length * (TAB_ITEM_DP + 2 * TAB_ITEM_GAP_DP) + 2 * TAB_BAR_PAD_DP;
+        int availableDp = getResources().getConfiguration().screenWidthDp - 2 * TAB_BAR_MARGIN_DP;
+        boolean narrow = availableDp < naturalDp;
+        int itemDp = narrow
+                ? (availableDp - 2 * TAB_BAR_PAD_DP) / TAB_PAGES.length - 2 * TAB_ITEM_GAP_DP
+                : TAB_ITEM_DP;
+        if (narrow) {
+            android.widget.FrameLayout.LayoutParams lp =
+                    (android.widget.FrameLayout.LayoutParams) bar.getLayoutParams();
+            lp.width = Math.round(availableDp * density);
+            bar.setLayoutParams(lp);
+        }
+
+        android.view.ViewGroup items = findViewById(R.id.tab_items);
+        android.view.LayoutInflater inflater = getLayoutInflater();
+        for (int i = 0; i < TAB_PAGES.length; i++) {
+            View item = inflater.inflate(R.layout.item_tab, items, false);
+            ((ImageView) item.findViewById(R.id.tab_icon)).setImageResource(TAB_ICONS[i]);
+            TextView label = item.findViewById(R.id.tab_label);
+            label.setText(TAB_LABELS[i]);
+            if (itemDp < MIN_LABELLED_TAB_DP) label.setVisibility(View.GONE);
+            item.setContentDescription(getString(TAB_LABELS[i]));
+            android.view.ViewGroup.LayoutParams ilp = item.getLayoutParams();
+            ilp.width = Math.round(itemDp * density);
+            item.setLayoutParams(ilp);
+            final int index = i;
+            item.setOnClickListener(v -> selectTab(index));
+            items.addView(item);
+            tabItems[i] = item;
+        }
+        selectTab(initial);
+    }
+
+    private void selectTab(int index) {
+        for (int i = 0; i < tabItems.length; i++) tabItems[i].setSelected(i == index);
+        showPage(index);
+    }
+
+    private void showPage(int index) {
+        currentTab = index;
+        for (int i = 0; i < TAB_PAGES.length; i++) {
+            findViewById(TAB_PAGES[i]).setVisibility(i == index ? View.VISIBLE : View.GONE);
+        }
+        if (TAB_PAGES[index] == R.id.page_style) stylePage.refresh();
+        if (TAB_PAGES[index] == R.id.page_history) historyPage.loadHistory();
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        // Keeps the tab across the recreate that an Appearance change triggers.
+        outState.putInt(STATE_TAB, currentTab);
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (currentTab != 0) {
+            selectTab(0);
+            return;
+        }
+        super.onBackPressed();
     }
 
     @Override
@@ -432,6 +528,7 @@ public class MainActivity extends AppCompatActivity {
             else val = -1;
             HistoryPrefs.setRetention(this, val);
             TranscriptionHistory.get(this).prune();
+            historyPage.loadHistory();
         });
     }
 
