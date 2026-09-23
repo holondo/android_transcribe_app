@@ -216,6 +216,8 @@
     <string name="retention_100">100</string>
     <string name="retention_unlimited">Ilimitado</string>
 
+    <string name="history_source_service">Serviço de fala</string>
+
     <!-- Floating tab bar -->
     <string name="tab_home">Início</string>
     <string name="tab_style">Estilo</string>
