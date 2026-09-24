@@ -186,9 +186,9 @@
     <string name="bubble_a11y_turn_on">Ativar</string>
 
     <string name="a11y_consent_title">Permissão de acessibilidade</string>
-    <string name="a11y_consent_body">A bolha Flow usa um serviço de acessibilidade do Android.\n\nO que ele faz:\n• Detecta quando um campo de texto está em foco e o teclado está aberto, para mostrar a bolha\n• Lê apenas o tipo do campo (por exemplo, senha ou número) para ignorar campos sensíveis\n• Cola o texto transcrito no campo em foco\n\nO que ele NÃO faz:\n• Ler ou armazenar o texto de qualquer campo\n• Sobrescrever o texto existente (insere no cursor)\n• Enviar qualquer coisa para fora do aparelho\n\nVocê será levado às configurações de acessibilidade para ativar o serviço.</string>
+    <string name="a11y_consent_body">A bolha Flow usa um serviço de acessibilidade do Android.\n\nO que ele faz:\n• Detecta quando um campo de texto está em foco e o teclado está aberto, para mostrar a bolha\n• Lê o tipo do campo (por exemplo, senha ou número) para ignorar campos sensíveis\n• Insere o texto transcrito no cursor do campo em foco. Para isso, lê o texto atual desse campo naquele momento\n\nO que ele NÃO faz:\n• Armazenar ou enviar o texto de qualquer campo; nada sai do seu aparelho\n• Mexer em campos de senha ou outros campos sensíveis\n• Alterar sua área de transferência, a não ser que a inserção falhe (aí o texto é copiado para você colar)\n\nVocê será levado às configurações de acessibilidade para ativar o serviço.</string>
     <string name="a11y_consent_accept">Entendi, continuar</string>
-    <string name="a11y_service_description">Mostra a bolha do microfone quando um campo de texto está em foco e insere a fala transcrita nele. Nunca lê nem armazena o texto dos campos.</string>
+    <string name="a11y_service_description">Mostra a bolha do microfone quando um campo de texto está em foco e insere a fala transcrita no cursor. O texto do campo é lido só para inserir; nunca é armazenado nem enviado.</string>
 
     <string name="section_history">Histórico de transcrições</string>
     <string name="history_title">Histórico</string>
@@ -222,4 +222,7 @@
     <string name="tab_home">Início</string>
     <string name="tab_style">Estilo</string>
     <string name="section_recording">Gravação</string>
+    <string name="style_test_title">Testar a bolha</string>
+    <string name="style_test_desc">Toque no campo abaixo. A bolha aparece acima do teclado com o estilo atual.</string>
+    <string name="style_test_hint">Dite aqui para testar</string>
 </resources>

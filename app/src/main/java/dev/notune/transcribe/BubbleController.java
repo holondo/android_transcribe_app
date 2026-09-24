@@ -38,6 +38,7 @@ public final class BubbleController {
 
     private final BubbleHost host;
     private final Set<String> excludedPackages;
+    private final String testFieldId;
 
     private Mode mode = Mode.HIDDEN;
     private BubbleHost.Settings settings;
@@ -75,8 +76,18 @@ public final class BubbleController {
     private final Runnable shrinkTask = this::onShrinkElapsed;
 
     public BubbleController(BubbleHost host, Set<String> excludedPackages) {
+        this(host, excludedPackages, null);
+    }
+
+    /**
+     * @param testFieldId full view ID ("pkg:id/name") of a field that shows the
+     *                    bubble even inside an excluded package: the app's own
+     *                    "Try the bubble" field
+     */
+    public BubbleController(BubbleHost host, Set<String> excludedPackages, String testFieldId) {
         this.host = host;
         this.excludedPackages = excludedPackages;
+        this.testFieldId = testFieldId;
         this.settings = host.settings();
     }
 
@@ -231,8 +242,9 @@ public final class BubbleController {
         mode = Mode.IDLE;
         if (text != null && !text.trim().isEmpty()) {
             host.saveHistory(text);
-            boolean inserted = host.insertText(text);
-            host.toast(inserted ? BubbleHost.Message.INSERTED : BubbleHost.Message.COPIED);
+            // Success needs no toast: the text shows up in the field. Tell the
+            // user only when it fell back to the clipboard.
+            if (!host.insertText(text)) host.toast(BubbleHost.Message.COPIED);
         }
         afterSession();
     }
@@ -314,7 +326,11 @@ public final class BubbleController {
         if (locked) return false;
         if (!keyboardVisible && !settings.showWithoutKeyboard) return false;
         if (field == null || !field.editable || !field.visibleToUser) return false;
-        if (pkg == null || excludedPackages.contains(pkg)) return false;
+        if (pkg == null) return false;
+        // The test field counts only inside the package its ID belongs to.
+        boolean testField = testFieldId != null && testFieldId.equals(field.viewId)
+                && testFieldId.startsWith(pkg + ":");
+        if (excludedPackages.contains(pkg) && !testField) return false;
         if (field.isPasswordField() || field.isNonTextField()) return false;
         if (settings.hideInSearch && field.isSearchField()) return false;
         return true;

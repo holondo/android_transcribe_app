@@ -4,7 +4,7 @@
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
     android:accessibilityEventTypes="typeViewFocused|typeWindowsChanged|typeWindowStateChanged"
     android:accessibilityFeedbackType="feedbackGeneric"
-    android:accessibilityFlags="flagRetrieveInteractiveWindows|flagReportViewIds"
+    android:accessibilityFlags="flagRetrieveInteractiveWindows|flagReportViewIds|flagInputMethodEditor"
     android:canRetrieveWindowContent="true"
     android:description="@string/a11y_service_description"
     android:notificationTimeout="50" />

@@ -186,9 +186,9 @@
     <string name="bubble_a11y_turn_on">Activar</string>
 
     <string name="a11y_consent_title">Permiso de accesibilidad</string>
-    <string name="a11y_consent_body">La burbuja Flow usa un servicio de accesibilidad de Android.\n\nQué hace:\n• Detecta cuándo un campo de texto tiene el foco y el teclado está abierto, para mostrar la burbuja\n• Lee solo el tipo de campo (por ejemplo, contraseña o número) para omitir campos sensibles\n• Pega el texto transcrito en el campo con foco\n\nQué NO hace:\n• Leer ni guardar el texto de ningún campo\n• Sobrescribir el texto existente (inserta en el cursor)\n• Enviar nada fuera de tu dispositivo\n\nIrás a los ajustes de accesibilidad para activar el servicio.</string>
+    <string name="a11y_consent_body">La burbuja Flow usa un servicio de accesibilidad de Android.\n\nQué hace:\n• Detecta cuándo un campo de texto tiene el foco y el teclado está abierto, para mostrar la burbuja\n• Lee el tipo de campo (por ejemplo, contraseña o número) para omitir campos sensibles\n• Inserta el texto transcrito en el cursor del campo con foco. Para ello, lee el texto actual de ese campo en ese momento\n\nQué NO hace:\n• Guardar ni enviar el texto de ningún campo; nada sale de tu dispositivo\n• Tocar campos de contraseña u otros campos sensibles\n• Cambiar tu portapapeles, salvo que la inserción falle (entonces el texto se copia para que lo pegues)\n\nIrás a los ajustes de accesibilidad para activar el servicio.</string>
     <string name="a11y_consent_accept">Entendido, continuar</string>
-    <string name="a11y_service_description">Muestra la burbuja de micrófono cuando un campo de texto tiene el foco e inserta allí la voz transcrita. Nunca lee ni guarda el texto de los campos.</string>
+    <string name="a11y_service_description">Muestra la burbuja de micrófono cuando un campo de texto tiene el foco e inserta la voz transcrita en el cursor. El texto del campo solo se lee para insertar; nunca se guarda ni se envía.</string>
 
     <string name="section_history">Historial de transcripciones</string>
     <string name="history_title">Historial</string>
@@ -220,4 +220,7 @@
     <string name="tab_home">Inicio</string>
     <string name="tab_style">Estilo</string>
     <string name="section_recording">Grabación</string>
+    <string name="style_test_title">Probar la burbuja</string>
+    <string name="style_test_desc">Toca el campo de abajo. La burbuja aparece sobre el teclado con tu estilo actual.</string>
+    <string name="style_test_hint">Dicta aquí para probar</string>
 </resources>

@@ -186,9 +186,9 @@
     <string name="bubble_a11y_turn_on">Aktivieren</string>
 
     <string name="a11y_consent_title">Bedienungshilfe-Berechtigung</string>
-    <string name="a11y_consent_body">Die Flow-Blase nutzt einen Android-Bedienungshilfendienst.\n\nWas er tut:\n• Erkennt, wann ein Textfeld fokussiert und die Tastatur offen ist, um die Blase anzuzeigen\n• Liest nur den Feldtyp (z. B. Passwort oder Zahl), um sensible Felder zu überspringen\n• Fügt den transkribierten Text in das fokussierte Feld ein\n\nWas er NICHT tut:\n• Den Text eines Feldes lesen oder speichern\n• Vorhandenen Text überschreiben (er fügt am Cursor ein)\n• Etwas von deinem Gerät senden\n\nDu wirst zu den Bedienungshilfe-Einstellungen weitergeleitet, um den Dienst zu aktivieren.</string>
+    <string name="a11y_consent_body">Die Flow-Blase nutzt einen Android-Bedienungshilfendienst.\n\nWas er tut:\n• Erkennt, wann ein Textfeld fokussiert und die Tastatur offen ist, um die Blase anzuzeigen\n• Liest den Feldtyp (z. B. Passwort oder Zahl), um sensible Felder zu überspringen\n• Fügt den transkribierten Text am Cursor des fokussierten Felds ein. Dazu liest er in diesem Moment den aktuellen Text dieses Felds\n\nWas er NICHT tut:\n• Den Text eines Felds speichern oder senden; nichts verlässt dein Gerät\n• Passwort- oder andere sensible Felder anfassen\n• Deine Zwischenablage ändern, außer das Einfügen schlägt fehl (dann wird der Text zum Einfügen kopiert)\n\nDu wirst zu den Bedienungshilfe-Einstellungen weitergeleitet, um den Dienst zu aktivieren.</string>
     <string name="a11y_consent_accept">Verstanden, fortfahren</string>
-    <string name="a11y_service_description">Zeigt die Mikrofonblase, wenn ein Textfeld fokussiert ist, und fügt dort transkribierte Sprache ein. Liest oder speichert niemals Feldtext.</string>
+    <string name="a11y_service_description">Zeigt die Mikrofonblase, wenn ein Textfeld fokussiert ist, und fügt transkribierte Sprache am Cursor ein. Feldtext wird nur zum Einfügen gelesen, nie gespeichert oder gesendet.</string>
 
     <string name="section_history">Transkriptionsverlauf</string>
     <string name="history_title">Verlauf</string>
@@ -220,4 +220,7 @@
     <string name="tab_home">Start</string>
     <string name="tab_style">Stil</string>
     <string name="section_recording">Aufnahme</string>
+    <string name="style_test_title">Blase ausprobieren</string>
+    <string name="style_test_desc">Tippe auf das Feld unten. Die Blase erscheint mit deinem aktuellen Stil über der Tastatur.</string>
+    <string name="style_test_hint">Zum Testen hier diktieren</string>
 </resources>

@@ -24,6 +24,52 @@
             android:layout_marginBottom="16dp"
             android:text="@string/tab_style"
             android:textAppearance="?attr/textAppearanceHeadlineMedium"/>
+
+        <!-- Try the bubble: the one field in this app where the Flow bubble
+             shows (BubbleController allows it by view ID), so style changes
+             can be tried right here. -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:contentPadding="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/style_test_title"
+                    android:textAppearance="?attr/textAppearanceTitleLarge"/>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginBottom="12dp"
+                    android:text="@string/style_test_desc"
+                    android:textAppearance="?attr/textAppearanceBodyMedium"
+                    android:textColor="?attr/colorOnSurfaceVariant"/>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="@string/style_test_hint">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/bubble_test_field"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="textMultiLine|textCapSentences"
+                        android:minLines="2"
+                        android:gravity="top|start"/>
+                </com.google.android.material.textfield.TextInputLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
             <!-- 4. Appearance Card -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"

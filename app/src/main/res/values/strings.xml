@@ -199,9 +199,9 @@
 
     <!-- Accessibility direct insertion -->
     <string name="a11y_consent_title">Accessibility permission</string>
-    <string name="a11y_consent_body">The Flow bubble uses an Android accessibility service.\n\nWhat it does:\n• Detects when a text field is focused and the keyboard is open, to show the bubble\n• Reads only the field type (for example password or number) to skip sensitive fields\n• Pastes the transcribed text into the focused field\n\nWhat it does NOT do:\n• Read or store the text of any field\n• Overwrite existing text (it inserts at the cursor)\n• Send anything off your device\n\nYou will be taken to Accessibility Settings to turn on the service.</string>
+    <string name="a11y_consent_body">The Flow bubble uses an Android accessibility service.\n\nWhat it does:\n• Detects when a text field is focused and the keyboard is open, to show the bubble\n• Reads the field type (for example password or number) to skip sensitive fields\n• Inserts the transcribed text at the cursor of the focused field. To do that, it reads that field\'s current text at that moment\n\nWhat it does NOT do:\n• Store or send the text of any field; nothing leaves your device\n• Touch password or other sensitive fields\n• Change your clipboard, unless inserting fails (then the text is copied so you can paste it)\n\nYou will be taken to Accessibility Settings to turn on the service.</string>
     <string name="a11y_consent_accept">I understand, continue</string>
-    <string name="a11y_service_description">Shows the mic bubble when a text field is focused and inserts transcribed speech there. Never reads or stores field text.</string>
+    <string name="a11y_service_description">Shows the mic bubble when a text field is focused and inserts transcribed speech at the cursor. Field text is read only to insert; it is never stored or sent.</string>
 
     <!-- Transcription history -->
     <string name="section_history">Transcription history</string>
@@ -236,4 +236,7 @@
     <string name="tab_home">Home</string>
     <string name="tab_style">Style</string>
     <string name="section_recording">Recording</string>
+    <string name="style_test_title">Try the bubble</string>
+    <string name="style_test_desc">Tap the field below. The bubble appears above the keyboard with your current style.</string>
+    <string name="style_test_hint">Dictate here to test</string>
 </resources>

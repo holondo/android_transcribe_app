@@ -186,9 +186,9 @@
     <string name="bubble_a11y_turn_on">Activer</string>
 
     <string name="a11y_consent_title">Autorisation d\'accessibilité</string>
-    <string name="a11y_consent_body">La bulle Flow utilise un service d\'accessibilité Android.\n\nCe qu\'il fait :\n• Détecte quand un champ de texte a le focus et que le clavier est ouvert, pour afficher la bulle\n• Lit uniquement le type de champ (par exemple mot de passe ou nombre) pour ignorer les champs sensibles\n• Colle le texte transcrit dans le champ actif\n\nCe qu\'il ne fait PAS :\n• Lire ou enregistrer le texte d\'un champ\n• Écraser le texte existant (il insère au curseur)\n• Envoyer quoi que ce soit hors de votre appareil\n\nVous allez être redirigé vers les paramètres d\'accessibilité pour activer le service.</string>
+    <string name="a11y_consent_body">La bulle Flow utilise un service d\'accessibilité Android.\n\nCe qu\'il fait :\n• Détecte quand un champ de texte a le focus et que le clavier est ouvert, pour afficher la bulle\n• Lit le type de champ (par exemple mot de passe ou nombre) pour ignorer les champs sensibles\n• Insère le texte transcrit au curseur du champ actif. Pour cela, il lit le texte actuel de ce champ à ce moment-là\n\nCe qu\'il ne fait PAS :\n• Enregistrer ou envoyer le texte d\'un champ ; rien ne quitte votre appareil\n• Toucher aux champs de mot de passe ou autres champs sensibles\n• Modifier votre presse-papiers, sauf si l\'insertion échoue (le texte est alors copié pour que vous le colliez)\n\nVous allez être redirigé vers les paramètres d\'accessibilité pour activer le service.</string>
     <string name="a11y_consent_accept">Je comprends, continuer</string>
-    <string name="a11y_service_description">Affiche la bulle micro quand un champ de texte a le focus et y insère la parole transcrite. Ne lit ni n\'enregistre jamais le texte des champs.</string>
+    <string name="a11y_service_description">Affiche la bulle micro quand un champ de texte a le focus et insère la parole transcrite au curseur. Le texte du champ n\'est lu que pour insérer ; il n\'est jamais enregistré ni envoyé.</string>
 
     <string name="section_history">Historique de transcription</string>
     <string name="history_title">Historique</string>
@@ -220,4 +220,7 @@
     <string name="tab_home">Accueil</string>
     <string name="tab_style">Style</string>
     <string name="section_recording">Enregistrement</string>
+    <string name="style_test_title">Essayer la bulle</string>
+    <string name="style_test_desc">Touchez le champ ci-dessous. La bulle apparaît au-dessus du clavier avec votre style actuel.</string>
+    <string name="style_test_hint">Dictez ici pour tester</string>
 </resources>

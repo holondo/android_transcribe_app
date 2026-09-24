@@ -186,9 +186,9 @@
     <string name="bubble_a11y_turn_on">Attiva</string>
 
     <string name="a11y_consent_title">Permesso di accessibilità</string>
-    <string name="a11y_consent_body">La bolla Flow usa un servizio di accessibilità di Android.\n\nCosa fa:\n• Rileva quando un campo di testo è attivo e la tastiera è aperta, per mostrare la bolla\n• Legge solo il tipo di campo (per esempio password o numero) per saltare i campi sensibili\n• Incolla il testo trascritto nel campo attivo\n\nCosa NON fa:\n• Leggere o salvare il testo di un campo\n• Sovrascrivere il testo esistente (inserisce al cursore)\n• Inviare qualcosa fuori dal dispositivo\n\nVerrai portato alle impostazioni di accessibilità per attivare il servizio.</string>
+    <string name="a11y_consent_body">La bolla Flow usa un servizio di accessibilità di Android.\n\nCosa fa:\n• Rileva quando un campo di testo è attivo e la tastiera è aperta, per mostrare la bolla\n• Legge il tipo di campo (per esempio password o numero) per saltare i campi sensibili\n• Inserisce il testo trascritto al cursore del campo attivo. Per farlo, legge in quel momento il testo attuale del campo\n\nCosa NON fa:\n• Salvare o inviare il testo di un campo; niente lascia il dispositivo\n• Toccare campi password o altri campi sensibili\n• Modificare gli appunti, a meno che l\'inserimento non riesca (allora il testo viene copiato per incollarlo)\n\nVerrai portato alle impostazioni di accessibilità per attivare il servizio.</string>
     <string name="a11y_consent_accept">Ho capito, continua</string>
-    <string name="a11y_service_description">Mostra la bolla microfono quando un campo di testo è attivo e vi inserisce il parlato trascritto. Non legge né salva mai il testo dei campi.</string>
+    <string name="a11y_service_description">Mostra la bolla microfono quando un campo di testo è attivo e inserisce il parlato trascritto al cursore. Il testo del campo viene letto solo per inserire; non viene mai salvato né inviato.</string>
 
     <string name="section_history">Cronologia trascrizioni</string>
     <string name="history_title">Cronologia</string>
@@ -220,4 +220,7 @@
     <string name="tab_home">Home</string>
     <string name="tab_style">Stile</string>
     <string name="section_recording">Registrazione</string>
+    <string name="style_test_title">Prova la bolla</string>
+    <string name="style_test_desc">Tocca il campo qui sotto. La bolla appare sopra la tastiera con lo stile attuale.</string>
+    <string name="style_test_hint">Detta qui per provare</string>
 </resources>

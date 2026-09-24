@@ -52,6 +52,8 @@ public class InsertionAccessibilityService extends AccessibilityService implemen
     private static final int MAX_SETTLE_TRIES = 12;
     private static final long ENTER_ANIM_MS = 160;
     private static final long MOVE_ANIM_MS = 180;
+    /** Delay before checking that SET_TEXT really changed the field. */
+    private static final long INSERT_VERIFY_MS = 200;
     private static final float SHAKE_G = 2.5f;
     private static final long SHAKE_WINDOW_MS = 800;
     private static final long SHAKE_MIN_GAP_MS = 120;
@@ -133,10 +135,91 @@ public class InsertionAccessibilityService extends AccessibilityService implemen
             mWindowManager.addCrossWindowBlurEnabledListener(getMainExecutor(), mBlurListener);
         }
 
+        registerDebugInsert();
         mRecorder.initNative(this);
-        mController = new BubbleController(this, excluded);
+        mController = new BubbleController(this, excluded,
+                getPackageName() + ":id/bubble_test_field");
         Log.i(TAG, "service connected");
         scheduleSnapshot();
+    }
+
+    private static final String ACTION_DEBUG_INSERT = "dev.notune.transcribe.DEBUG_INSERT";
+    private static final String ACTION_DEBUG_DUMP = "dev.notune.transcribe.DEBUG_DUMP";
+    private android.content.BroadcastReceiver mDebugInsert;
+
+    /** Debug: logs everything the focused field exposes (to study hint handling). */
+    private void dumpFocusedField() {
+        AccessibilityNodeInfo n = findFocusedField();
+        if (n == null) {
+            Log.i(TAG, "dump: no focused field");
+            return;
+        }
+        StringBuilder b = new StringBuilder("dump:");
+        b.append(" text='").append(n.getText()).append('\'');
+        if (Build.VERSION.SDK_INT >= 26) {
+            b.append(" hintText='").append(n.getHintText()).append('\'');
+            b.append(" showingHint=").append(n.isShowingHintText());
+        }
+        b.append(" desc='").append(n.getContentDescription()).append('\'');
+        if (Build.VERSION.SDK_INT >= 28) b.append(" tooltip='").append(n.getTooltipText()).append('\'');
+        if (Build.VERSION.SDK_INT >= 30) b.append(" stateDesc='").append(n.getStateDescription()).append('\'');
+        b.append(" sel=").append(n.getTextSelectionStart()).append("..").append(n.getTextSelectionEnd());
+        b.append(" cls=").append(n.getClassName()).append(" id=").append(n.getViewIdResourceName());
+        b.append(" inputType=0x").append(Integer.toHexString(n.getInputType()));
+        b.append(" multiLine=").append(n.isMultiLine());
+        b.append(" maxLen=").append(n.getMaxTextLength());
+        b.append(" actions=").append(n.getActionList().size());
+        android.os.Bundle extras = n.getExtras();
+        if (extras != null) b.append(" extras=").append(extras.keySet());
+        b.append(" extraData=").append(n.getAvailableExtraData());
+        b.append(" children=").append(n.getChildCount());
+        CharSequence t = n.getText();
+        int len = t == null ? 0 : t.length();
+        b.append(" probeSel(len)=").append(probeCursor(n, len));
+        AccessibilityNodeInfo parent = n.getParent();
+        if (parent != null) {
+            b.append(" parentCls=").append(parent.getClassName())
+                    .append(" parentDesc='").append(parent.getContentDescription()).append('\'');
+            for (int i = 0; i < parent.getChildCount() && i < 8; i++) {
+                AccessibilityNodeInfo sib = parent.getChild(i);
+                if (sib == null) continue;
+                b.append(" | sib").append(i).append(':').append(sib.getClassName())
+                        .append(" t='").append(sib.getText()).append("' d='")
+                        .append(sib.getContentDescription()).append('\'');
+            }
+        }
+        Log.i(TAG, b.toString());
+    }
+
+    /**
+     * Debug builds only: {@code adb shell am broadcast -a dev.notune.transcribe.DEBUG_INSERT
+     * --es text "hello"} inserts into the focused field the same way a
+     * transcription does, so field compatibility can be tested without speaking.
+     */
+    private void registerDebugInsert() {
+        boolean debuggable = (getApplicationInfo().flags
+                & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0;
+        if (!debuggable) return;
+        mDebugInsert = new android.content.BroadcastReceiver() {
+            @Override
+            public void onReceive(Context c, Intent i) {
+                if (ACTION_DEBUG_DUMP.equals(i.getAction())) {
+                    dumpFocusedField();
+                    return;
+                }
+                String text = i.getStringExtra("text");
+                if (text == null) return;
+                boolean ok = insertText(text);
+                Log.i(TAG, "debug insert '" + text + "' -> " + (ok ? "inserted" : "copied"));
+            }
+        };
+        android.content.IntentFilter filter = new android.content.IntentFilter(ACTION_DEBUG_INSERT);
+        filter.addAction(ACTION_DEBUG_DUMP);
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(mDebugInsert, filter, Context.RECEIVER_EXPORTED);
+        } else {
+            registerReceiver(mDebugInsert, filter);
+        }
     }
 
     @Override
@@ -185,6 +268,10 @@ public class InsertionAccessibilityService extends AccessibilityService implemen
 
     private void shutdown() {
         if (sInstance == this) sInstance = null;
+        if (mDebugInsert != null) {
+            try { unregisterReceiver(mDebugInsert); } catch (Exception ignored) { }
+            mDebugInsert = null;
+        }
         mMain.removeCallbacks(mSnapshotTask);
         if (mController != null) {
             mController.onServiceStopping();
@@ -714,22 +801,165 @@ public class InsertionAccessibilityService extends AccessibilityService implemen
 
     @Override
     public boolean insertText(String text) {
-        ClipboardManager cm = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
-        if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("Transcription", text));
-
         AccessibilityNodeInfo focused = null;
         try {
             focused = findFocusedField();
-            if (focused == null || !isSafeEditable(focused)) return false;
-            // ACTION_PASTE inserts the clipboard at the app-managed cursor
-            // without reading or reconstructing the existing field content.
-            return focused.performAction(AccessibilityNodeInfo.ACTION_PASTE);
+            if (focused != null && isSafeEditable(focused)) {
+                // Best path (Android 13+): type into the field through an input
+                // connection, like a keyboard. The app places the text at its
+                // real cursor, knows its own hint, and no clipboard is involved.
+                if (commitViaInputConnection(text)) {
+                    Log.i(TAG, "inserted with input connection");
+                    // A stale connection (keyboard just closed) can take the
+                    // text without it landing: check, and paste if needed.
+                    mMain.postDelayed(() -> verifyInserted(text), INSERT_VERIFY_MS);
+                    return true;
+                }
+                if (setTextAtCursor(focused, text)) {
+                    Log.i(TAG, "inserted with SET_TEXT");
+                    // Some fields apply the change a moment later (Compose),
+                    // others accept the action and keep their own text: check
+                    // once it has settled, and paste only if it did not land.
+                    mMain.postDelayed(() -> verifyInserted(text), INSERT_VERIFY_MS);
+                    return true;
+                }
+                if (pasteInto(focused, text)) return true;
+                Log.i(TAG, "insert failed; left on clipboard");
+                return false;
+            }
         } catch (Exception e) {
             Log.w(TAG, "Insertion failed", e);
-            return false;
         } finally {
             if (focused != null) focused.recycle();
         }
+        copyToClipboard(text);
+        return false;
+    }
+
+    /**
+     * Commits the dictation through the accessibility input method (API 33+,
+     * needs flagInputMethodEditor), adding a space when it would otherwise glue
+     * onto the previous word. Returns false when no connection is available.
+     */
+    private boolean commitViaInputConnection(String dictation) {
+        if (Build.VERSION.SDK_INT < 33) return false;
+        android.accessibilityservice.InputMethod im = getInputMethod();
+        if (im == null) return false;
+        android.accessibilityservice.InputMethod.AccessibilityInputConnection ic =
+                im.getCurrentInputConnection();
+        if (ic == null) return false;
+        String insert = dictation.trim();
+        android.view.inputmethod.SurroundingText around = ic.getSurroundingText(1, 1, 0);
+        if (around != null) {
+            CharSequence t = around.getText();
+            int cur = around.getSelectionStart();
+            boolean glueBefore = cur > 0 && cur <= t.length()
+                    && !Character.isWhitespace(t.charAt(cur - 1))
+                    && ".,;:!?)]}".indexOf(insert.isEmpty() ? ' ' : insert.charAt(0)) < 0;
+            int end = around.getSelectionEnd();
+            boolean glueAfter = end >= 0 && end < t.length()
+                    && !Character.isWhitespace(t.charAt(end))
+                    && ".,;:!?)]}".indexOf(t.charAt(end)) < 0;
+            if (glueBefore) insert = " " + insert;
+            if (glueAfter) insert = insert + " ";
+        }
+        ic.commitText(insert, 1, null);
+        return true;
+    }
+
+    /** Pastes into the field via the clipboard (fields that ignore SET_TEXT). */
+    private boolean pasteInto(AccessibilityNodeInfo node, String text) {
+        copyToClipboard(text);
+        if (node.performAction(AccessibilityNodeInfo.ACTION_PASTE)) {
+            Log.i(TAG, "inserted with PASTE");
+            return true;
+        }
+        return false;
+    }
+
+    private void verifyInserted(String text) {
+        AccessibilityNodeInfo node = null;
+        try {
+            node = findFocusedField();
+            if (node == null || !isSafeEditable(node)) return;
+            CharSequence now = node.getText();
+            if (now != null && now.toString().contains(text.trim())) return;
+            Log.i(TAG, "SET_TEXT did not land; pasting");
+            if (!pasteInto(node, text)) toast(Message.COPIED);
+        } catch (Exception e) {
+            Log.w(TAG, "insert check failed", e);
+        } finally {
+            if (node != null) node.recycle();
+        }
+    }
+
+    /**
+     * Writes the dictation into the field at its cursor (or over its
+     * selection) with ACTION_SET_TEXT, then puts the cursor after it. The
+     * field's text is read only to build the new value; it is never stored.
+     * Returns false when the field refuses the action.
+     */
+    private boolean setTextAtCursor(AccessibilityNodeInfo node, String dictation) {
+        CharSequence current = node.getText();
+        int selStart = node.getTextSelectionStart();
+        int selEnd = node.getTextSelectionEnd();
+        boolean hint = Build.VERSION.SDK_INT >= 26 && node.isShowingHintText();
+        CharSequence hintText = Build.VERSION.SDK_INT >= 26 ? node.getHintText() : null;
+        if (!hint && current != null && hintText != null
+                && current.toString().contentEquals(hintText)) {
+            hint = true;
+        }
+
+        String existing;
+        if (current == null || current.length() == 0 || hint) {
+            existing = "";
+        } else {
+            // The field reports some text, but apps like WhatsApp and Telegram
+            // report an empty field's hint ("Message") as text without flagging
+            // it. Ask the field itself: a real EditText accepts a cursor at the
+            // end of its real text and refuses one past it.
+            int len = current.length();
+            int probe = selEnd >= 0 ? Math.min(selEnd, len) : len;
+            if (probe > 0 && probeCursor(node, probe)) {
+                existing = current.toString();          // real text
+            } else if (probeCursor(node, 0)) {
+                existing = "";                          // only the hint: empty
+                selStart = selEnd = 0;
+            } else {
+                Log.d(TAG, "insert: field text unclear; pasting instead");
+                return false;                           // let the app paste
+            }
+        }
+        if (Log.isLoggable(TAG, Log.DEBUG)) {
+            Log.d(TAG, "insert: existingLen=" + existing.length() + " hint=" + hint
+                    + " sel=" + selStart + ".." + selEnd);
+        }
+        TextSplice splice = TextSplice.at(existing, selStart, selEnd, dictation);
+
+        android.os.Bundle args = new android.os.Bundle();
+        args.putCharSequence(
+                AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, splice.text);
+        if (!node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)) return false;
+
+        probeCursor(node, splice.cursor);
+        return true;
+    }
+
+    /**
+     * Puts the cursor at {@code pos}. A standard EditText refuses a position
+     * past its real text, so on a field that reports its hint as text (the
+     * real text is empty) this fails for any pos > 0.
+     */
+    private static boolean probeCursor(AccessibilityNodeInfo node, int pos) {
+        android.os.Bundle sel = new android.os.Bundle();
+        sel.putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, pos);
+        sel.putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, pos);
+        return node.performAction(AccessibilityNodeInfo.ACTION_SET_SELECTION, sel);
+    }
+
+    private void copyToClipboard(String text) {
+        ClipboardManager cm = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+        if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("Transcription", text));
     }
 
     private static boolean isSafeEditable(AccessibilityNodeInfo node) {

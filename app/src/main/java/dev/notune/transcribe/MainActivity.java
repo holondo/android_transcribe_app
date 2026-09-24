@@ -226,6 +226,22 @@ public class MainActivity extends AppCompatActivity {
             tabItems[i] = item;
         }
         selectTab(initial);
+        hideTabBarWithKeyboard(bar);
+    }
+
+    /**
+     * Hides the tab bar while the on-screen keyboard is open, as navigation bars
+     * usually do, so it never sits between the keyboard and the Flow bubble.
+     */
+    private void hideTabBarWithKeyboard(View bar) {
+        View root = findViewById(android.R.id.content);
+        android.graphics.Rect visible = new android.graphics.Rect();
+        root.getViewTreeObserver().addOnGlobalLayoutListener(() -> {
+            root.getWindowVisibleDisplayFrame(visible);
+            int screen = root.getRootView().getHeight();
+            boolean keyboard = screen - visible.bottom > screen * 0.15f;
+            bar.setVisibility(keyboard ? View.GONE : View.VISIBLE);
+        });
     }
 
     private void selectTab(int index) {

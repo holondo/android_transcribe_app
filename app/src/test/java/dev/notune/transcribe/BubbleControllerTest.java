@@ -110,6 +110,25 @@ public class BubbleControllerTest {
     }
 
     @Test
+    public void ownAppShowsBubbleOnlyInTheTestField() {
+        c = new BubbleController(host, new HashSet<>(Arrays.asList("dev.notune.transcribe")),
+                "dev.notune.transcribe:id/bubble_test_field");
+        FieldInfo other = new FieldInfo(true, true, false, 0x1, "android.widget.EditText",
+                "dev.notune.transcribe:id/some_other_field");
+        FieldInfo test = new FieldInfo(true, true, false, 0x1, "android.widget.EditText",
+                "dev.notune.transcribe:id/bubble_test_field");
+        c.onFocusSnapshot(other, "dev.notune.transcribe", true, KB_TOP, false);
+        assertEquals(Mode.HIDDEN, c.mode());
+        c.onFocusSnapshot(test, "dev.notune.transcribe", true, KB_TOP, false);
+        assertEquals(Mode.IDLE, c.mode());
+        // The same view ID in another excluded app (a bank) does not count.
+        c = new BubbleController(host, new HashSet<>(Arrays.asList("com.bank")),
+                "dev.notune.transcribe:id/bubble_test_field");
+        c.onFocusSnapshot(test, "com.bank", true, KB_TOP, false);
+        assertEquals(Mode.HIDDEN, c.mode());
+    }
+
+    @Test
     public void masterSwitchAndConsentGateTheBubble() {
         host.enabled = false;
         c.onPrefsChanged();
@@ -254,7 +273,7 @@ public class BubbleControllerTest {
         c.onText("hello");
         assertTrue(host.has("saveHistory hello"));
         assertTrue(host.has("insertText hello"));
-        assertTrue(host.has("toast INSERTED"));
+        assertFalse(host.has("toast")); // success is silent
     }
 
     @Test
